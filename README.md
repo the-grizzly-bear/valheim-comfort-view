@@ -1,7 +1,7 @@
 # Comfort View
 
 BepInEx mod that draws each nearby comfort item's 10m radius as a ring on the
-ground.
+ground, colored by category (fire, chair, table, bed, banner, rug).
 
 ## Install
 

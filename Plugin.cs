@@ -32,7 +32,26 @@ namespace ComfortView
         private const float SpokeDashesPerRadius = 10f;
         private const float SphereFillAlpha = 0.12f;
 
-        private static readonly Color RingColor = Color.white;
+        private static Color CategoryColor(Piece.ComfortGroup group)
+        {
+            switch (group)
+            {
+                case Piece.ComfortGroup.Fire:
+                    return new Color(0.9f, 0.25f, 0.2f);
+                case Piece.ComfortGroup.Chair:
+                    return new Color(0.95f, 0.6f, 0.15f);
+                case Piece.ComfortGroup.Table:
+                    return new Color(0.55f, 0.35f, 0.15f);
+                case Piece.ComfortGroup.Bed:
+                    return new Color(0.85f, 0.4f, 0.8f);
+                case Piece.ComfortGroup.Banner:
+                    return new Color(0.3f, 0.5f, 0.95f);
+                case Piece.ComfortGroup.Carpet:
+                    return new Color(0.35f, 0.8f, 0.35f);
+                default:
+                    return new Color(0.85f, 0.85f, 0.85f);
+            }
+        }
 
         private enum DisplayMode
         {
@@ -129,7 +148,6 @@ namespace ComfortView
             s_dashMaterial.mainTextureScale = new Vector2(SpokeDashesPerRadius, 1f);
 
             s_sphereFillMaterial = new Material(Shader.Find("Sprites/Default"));
-            s_sphereFillMaterial.color = new Color(1f, 1f, 1f, SphereFillAlpha);
 
             s_localCircle = new Vector3[Segments + 1];
             for (int i = 0; i <= Segments; i++)
@@ -823,7 +841,7 @@ namespace ComfortView
                     continue;
                 }
 
-                activeRings[piece] = CreateRing(piece.transform, RingColor);
+                activeRings[piece] = CreateRing(piece.transform, CategoryColor(piece.m_comfortGroup));
             }
 
             foreach (KeyValuePair<Piece, RingEntry> kv in activeRings)
@@ -936,7 +954,8 @@ namespace ComfortView
             fillGo.transform.localScale = Vector3.one * (ComfortRadius * 2f);
             UnityEngine.Object.DestroyImmediate(fillGo.GetComponent<Collider>());
             MeshRenderer fillRenderer = fillGo.GetComponent<MeshRenderer>();
-            fillRenderer.sharedMaterial = s_sphereFillMaterial;
+            fillRenderer.material = s_sphereFillMaterial;
+            fillRenderer.material.color = new Color(color.r, color.g, color.b, SphereFillAlpha);
             fillRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             fillRenderer.receiveShadows = false;
 
