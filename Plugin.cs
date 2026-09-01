@@ -31,17 +31,7 @@ namespace ComfortView
         private const float SpokeWidth = 0.05f;
         private const float SpokeDashesPerRadius = 10f;
 
-        private static readonly Color[] Palette =
-        {
-            new Color(0.9f, 0.3f, 0.3f),
-            new Color(0.3f, 0.5f, 0.95f),
-            new Color(0.4f, 0.85f, 0.4f),
-            new Color(0.95f, 0.65f, 0.2f),
-            new Color(0.7f, 0.4f, 0.9f),
-            new Color(0.3f, 0.85f, 0.85f),
-            new Color(0.95f, 0.4f, 0.75f),
-            new Color(0.85f, 0.85f, 0.3f),
-        };
+        private static readonly Color RingColor = Color.white;
 
         private enum DisplayMode
         {
@@ -111,6 +101,8 @@ namespace ComfortView
             public LineRenderer Ring;
             public LineRenderer Post;
             public LineRenderer Spoke;
+            public GameObject SphereRoot;
+            public LineRenderer[] SphereRings;
             public Color Color;
         }
 
@@ -826,8 +818,12 @@ namespace ComfortView
                     continue;
                 }
 
-                Color color = Palette[(piece.GetInstanceID() & int.MaxValue) % Palette.Length];
-                activeRings[piece] = CreateRing(piece.transform, color);
+                activeRings[piece] = CreateRing(piece.transform, RingColor);
+            }
+
+            foreach (KeyValuePair<Piece, RingEntry> kv in activeRings)
+            {
+                kv.Value.SphereRoot.SetActive(pinned.Contains(kv.Key));
             }
         }
 
@@ -919,18 +915,52 @@ namespace ComfortView
             spoke.startColor = spokeColor;
             spoke.endColor = spokeColor;
 
-            RingEntry entry = new RingEntry { Root = root, Ring = ring, Post = post, Spoke = spoke, Color = color };
+            GameObject sphereRoot = new GameObject("Sphere");
+            sphereRoot.transform.SetParent(root.transform, false);
+            LineRenderer[] sphereRings =
+            {
+                CreateSphereRing(sphereRoot.transform, Quaternion.Euler(90f, 0f, 0f)),
+                CreateSphereRing(sphereRoot.transform, Quaternion.Euler(0f, 0f, 90f)),
+            };
+            sphereRoot.SetActive(false);
+
+            RingEntry entry = new RingEntry { Root = root, Ring = ring, Post = post, Spoke = spoke, SphereRoot = sphereRoot, SphereRings = sphereRings, Color = color };
             SetHover(entry, isHovered: false);
             return entry;
+        }
+
+        private static LineRenderer CreateSphereRing(Transform parent, Quaternion localRotation)
+        {
+            GameObject go = new GameObject("SphereRing");
+            go.transform.SetParent(parent, false);
+            go.transform.localRotation = localRotation;
+            LineRenderer line = go.AddComponent<LineRenderer>();
+            line.useWorldSpace = false;
+            line.loop = true;
+            line.positionCount = s_localCircle.Length;
+            line.SetPositions(s_localCircle);
+            line.material = s_ringMaterial;
+            line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            line.receiveShadows = false;
+            return line;
         }
 
         private static void SetHover(RingEntry entry, bool isHovered)
         {
             Color c = entry.Color;
             c.a = isHovered ? 1f : DimAlpha;
-            entry.Ring.widthMultiplier = isHovered ? HoverWidth : DimWidth;
+            float width = isHovered ? HoverWidth : DimWidth;
+
+            entry.Ring.widthMultiplier = width;
             entry.Ring.startColor = c;
             entry.Ring.endColor = c;
+
+            foreach (LineRenderer sphereRing in entry.SphereRings)
+            {
+                sphereRing.widthMultiplier = width;
+                sphereRing.startColor = c;
+                sphereRing.endColor = c;
+            }
 
             Color postColor = entry.Color;
             postColor.a = 1f;
