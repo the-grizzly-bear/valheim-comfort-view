@@ -86,6 +86,7 @@ namespace ComfortView
         private bool menuOpen;
         private DisplayMode mode = DisplayMode.All;
         private MenuTab activeTab = MenuTab.Items;
+        private bool sphereMode;
         private float refreshTimer;
         private int menuIndex;
 
@@ -93,6 +94,7 @@ namespace ComfortView
 
         private GameObject menuRoot;
         private TMP_Text[] modeTexts;
+        private TMP_Text shapeText;
         private TMP_Text tabsText;
         private GameObject itemsSection;
         private GameObject nearbySection;
@@ -289,8 +291,9 @@ namespace ComfortView
             return closest;
         }
 
-        private const int TabRowIndex = 2;
-        private const int FirstListRowIndex = 3;
+        private const int ShapeRowIndex = 2;
+        private const int TabRowIndex = 3;
+        private const int FirstListRowIndex = 4;
 
         private int MenuRowCount()
         {
@@ -352,6 +355,12 @@ namespace ComfortView
             if (index == 1)
             {
                 ToggleMode(DisplayMode.ActiveOnly);
+                return;
+            }
+            if (index == ShapeRowIndex)
+            {
+                sphereMode = !sphereMode;
+                refreshTimer = 0f;
                 return;
             }
 
@@ -519,6 +528,8 @@ namespace ComfortView
                 modeTexts[i] = CreateText(panelRect, "", TextAlignmentOptions.Left, 11f, Color.white);
             }
 
+            shapeText = CreateText(panelRect, "", TextAlignmentOptions.Left, 11f, Color.white);
+
             tabsText = CreateText(panelRect, "", TextAlignmentOptions.Left, 11f, Color.white);
 
             itemsSection = BuildColumnSection(panelRect, out listColumns);
@@ -570,6 +581,10 @@ namespace ComfortView
         {
             UpdateModeRowText(0, "Show all nearby");
             UpdateModeRowText(1, "Show active only");
+
+            bool shapeHighlighted = menuIndex == ShapeRowIndex;
+            shapeText.text = (shapeHighlighted ? "> " : "  ") + "Shape: " + (sphereMode ? "Spheres" : "Circles");
+            shapeText.color = shapeHighlighted ? Color.yellow : Color.white;
 
             bool tabHighlighted = menuIndex == TabRowIndex;
             string tabsLabel = activeTab == MenuTab.Items ? "[ Items ]   Nearby" : "  Items   [ Nearby ]";
@@ -846,7 +861,7 @@ namespace ComfortView
 
             foreach (KeyValuePair<Piece, RingEntry> kv in activeRings)
             {
-                kv.Value.SphereRoot.SetActive(pinned.Contains(kv.Key));
+                kv.Value.SphereRoot.SetActive(sphereMode || pinned.Contains(kv.Key));
             }
         }
 
