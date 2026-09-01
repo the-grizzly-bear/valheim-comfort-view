@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyName>ComfortRadius</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <RestorePackages>false</RestorePackages>
+    <!-- Point this at your Valheim install if it's not in the default Steam location -->
+    <ValheimPath Condition="'$(ValheimPath)' == ''">/home/user/.steam/steam/steamapps/common/Valheim</ValheimPath>
+    <ManagedPath>$(ValheimPath)/valheim_Data/Managed</ManagedPath>
+    <BepInExCorePath>$(ValheimPath)/BepInEx/core</BepInExCorePath>
+    <BepInExPluginsPath>$(ValheimPath)/BepInEx/plugins</BepInExPluginsPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="assembly_valheim">
+      <HintPath>$(ManagedPath)/assembly_valheim.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(ManagedPath)/UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(ManagedPath)/UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="BepInEx">
+      <HintPath>$(BepInExCorePath)/BepInEx.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(BepInExCorePath)/0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Drops the built DLL straight into the game's plugins folder -->
+  <Target Name="DeployToGame" AfterTargets="Build">
+    <ItemGroup>
+      <DeployFiles Include="$(TargetDir)$(AssemblyName).dll" />
+    </ItemGroup>
+    <MakeDir Directories="$(BepInExPluginsPath)/ComfortRadius" />
+    <Copy SourceFiles="@(DeployFiles)" DestinationFolder="$(BepInExPluginsPath)/ComfortRadius" />
+  </Target>
+
+</Project>
