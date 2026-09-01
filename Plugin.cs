@@ -30,6 +30,7 @@ namespace ComfortView
         private const float SpokeAlpha = 0.6f;
         private const float SpokeWidth = 0.05f;
         private const float SpokeDashesPerRadius = 10f;
+        private const float SphereFillAlpha = 0.12f;
 
         private static readonly Color RingColor = Color.white;
 
@@ -48,6 +49,7 @@ namespace ComfortView
 
         private static Material s_ringMaterial;
         private static Material s_dashMaterial;
+        private static Material s_sphereFillMaterial;
         private static Vector3[] s_localCircle;
         private static TMP_FontAsset s_font;
         private static Sprite s_panelSprite;
@@ -125,6 +127,9 @@ namespace ComfortView
             s_dashMaterial = new Material(Shader.Find("Sprites/Default"));
             s_dashMaterial.mainTexture = dashTexture;
             s_dashMaterial.mainTextureScale = new Vector2(SpokeDashesPerRadius, 1f);
+
+            s_sphereFillMaterial = new Material(Shader.Find("Sprites/Default"));
+            s_sphereFillMaterial.color = new Color(1f, 1f, 1f, SphereFillAlpha);
 
             s_localCircle = new Vector3[Segments + 1];
             for (int i = 0; i <= Segments; i++)
@@ -921,7 +926,20 @@ namespace ComfortView
             {
                 CreateSphereRing(sphereRoot.transform, Quaternion.Euler(90f, 0f, 0f)),
                 CreateSphereRing(sphereRoot.transform, Quaternion.Euler(0f, 0f, 90f)),
+                CreateSphereRing(sphereRoot.transform, Quaternion.Euler(45f, 0f, 45f)),
+                CreateSphereRing(sphereRoot.transform, Quaternion.Euler(-45f, 0f, 45f)),
             };
+
+            GameObject fillGo = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            fillGo.name = "SphereFill";
+            fillGo.transform.SetParent(sphereRoot.transform, false);
+            fillGo.transform.localScale = Vector3.one * (ComfortRadius * 2f);
+            UnityEngine.Object.DestroyImmediate(fillGo.GetComponent<Collider>());
+            MeshRenderer fillRenderer = fillGo.GetComponent<MeshRenderer>();
+            fillRenderer.sharedMaterial = s_sphereFillMaterial;
+            fillRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            fillRenderer.receiveShadows = false;
+
             sphereRoot.SetActive(false);
 
             RingEntry entry = new RingEntry { Root = root, Ring = ring, Post = post, Spoke = spoke, SphereRoot = sphereRoot, SphereRings = sphereRings, Color = color };
