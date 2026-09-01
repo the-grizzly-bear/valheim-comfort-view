@@ -37,19 +37,19 @@ namespace ComfortView
             switch (group)
             {
                 case Piece.ComfortGroup.Fire:
-                    return new Color(0.9f, 0.25f, 0.2f);
+                    return new Color32(0xE3, 0x9A, 0x3B, 0xFF);
                 case Piece.ComfortGroup.Chair:
-                    return new Color(0.95f, 0.6f, 0.15f);
+                    return new Color32(0xC7, 0x5F, 0x32, 0xFF);
                 case Piece.ComfortGroup.Table:
-                    return new Color(0.55f, 0.35f, 0.15f);
+                    return new Color32(0x8A, 0x76, 0x48, 0xFF);
                 case Piece.ComfortGroup.Bed:
-                    return new Color(0.85f, 0.4f, 0.8f);
+                    return new Color32(0x9C, 0x8A, 0xC0, 0xFF);
                 case Piece.ComfortGroup.Banner:
-                    return new Color(0.3f, 0.5f, 0.95f);
+                    return new Color32(0x4C, 0x86, 0xA8, 0xFF);
                 case Piece.ComfortGroup.Carpet:
-                    return new Color(0.35f, 0.8f, 0.35f);
+                    return new Color32(0x7F, 0xA6, 0x50, 0xFF);
                 default:
-                    return new Color(0.85f, 0.85f, 0.85f);
+                    return new Color32(0x8A, 0x86, 0x72, 0xFF);
             }
         }
 
@@ -616,7 +616,7 @@ namespace ComfortView
                 bool selected = selectedTypes.Contains(entry.key);
                 bool highlighted = activeTab == MenuTab.Items && menuIndex == FirstListRowIndex + navPos;
                 listRowTexts[row].text = (highlighted ? "> " : "  ") + (selected ? "[x] " : "[ ] ") + $"{entry.label} (+{entry.comfort})";
-                listRowTexts[row].color = highlighted ? Color.yellow : Color.white;
+                listRowTexts[row].color = highlighted ? Color.yellow : CategoryColor(entry.group);
             }
 
             for (int i = 0; i < nearbyRowTexts.Count; i++)
@@ -631,7 +631,7 @@ namespace ComfortView
                 Player player = Player.m_localPlayer;
                 float dist = player != null ? Vector3.Distance(player.transform.position, piece.transform.position) : 0f;
                 nearbyRowTexts[i].text = (highlighted ? "> " : "  ") + (isPinned ? "[x] " : "[ ] ") + $"{Localization.instance.Localize(piece.m_name)} ({dist:0}m)";
-                nearbyRowTexts[i].color = highlighted ? Color.yellow : (isPinned ? new Color(1f, 0.85f, 0.4f) : Color.white);
+                nearbyRowTexts[i].color = highlighted ? Color.yellow : CategoryColor(piece.m_comfortGroup);
             }
         }
 
@@ -695,7 +695,7 @@ namespace ComfortView
             {
                 foreach ((int start, int end, Piece.ComfortGroup group) run in perColumn[c])
                 {
-                    TMP_Text header = CreateText(listColumns[c], GroupLabel(run.group), TextAlignmentOptions.Left, 10f, new Color(0.85f, 0.75f, 0.5f));
+                    TMP_Text header = CreateText(listColumns[c], GroupLabel(run.group), TextAlignmentOptions.Left, 10f, CategoryColor(run.group));
                     listRowTexts.Add(header);
                     listRowItemIndex.Add(-1);
 

@@ -10,7 +10,7 @@ Drop `ComfortView.dll` into `BepInEx/plugins/ComfortView/`. Client-side only.
 ## Controls
 
 - **F6** - toggle rings on/off
-- **F7** - open/close the selection menu (Up/Down move, Right select/pin/toggle, Esc close); includes a Circles/Spheres shape toggle for whatever's currently shown
+- **F7** - open/close the selection menu (Up/Down move, Right select/pin/toggle, Esc close); includes a Circles/Spheres shape toggle for whatever's currently shown, and the Items/Nearby lists are colored to match each item's category
 - **F8** - pin/unpin the item you're looking at; pinned items always get a translucent 3D sphere regardless of the shape setting, since comfort range is a true sphere, not just a flat circle
 
 ## Build from source
