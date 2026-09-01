@@ -7,13 +7,13 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace ComfortRadius
+namespace ComfortView
 {
     [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
-    public class ComfortRadiusPlugin : BaseUnityPlugin
+    public class ComfortViewPlugin : BaseUnityPlugin
     {
-        public const string PluginGUID = "mishka.valheim.comfortradius";
-        public const string PluginName = "ComfortRadius";
+        public const string PluginGUID = "mishka.valheim.comfortview";
+        public const string PluginName = "ComfortView";
         public const string PluginVersion = "1.0.0";
 
         private const float ComfortRadius = 10f;
@@ -26,6 +26,7 @@ namespace ComfortRadius
         private const float DimAlpha = 0.35f;
         private const float PostHeight = 2.5f;
         private const float HoverRayDistance = 50f;
+        private const float SoloAimTolerance = 1.2f;
         private const float SpokeAlpha = 0.6f;
         private const float SpokeWidth = 0.05f;
         private const float SpokeDashesPerRadius = 10f;
@@ -231,12 +232,46 @@ namespace ComfortRadius
         private static Piece RaycastForComfortPiece()
         {
             Transform cam = GameCamera.instance != null ? GameCamera.instance.transform : null;
-            if (cam == null || !Physics.Raycast(cam.position, cam.forward, out RaycastHit hit, HoverRayDistance, PieceRayMask()))
+            Player player = Player.m_localPlayer;
+            if (cam == null || player == null)
             {
                 return null;
             }
-            Piece piece = hit.collider.GetComponentInParent<Piece>();
-            return piece != null && piece.m_comfort > 0 ? piece : null;
+
+            if (Physics.Raycast(cam.position, cam.forward, out RaycastHit hit, HoverRayDistance, PieceRayMask()))
+            {
+                Piece direct = hit.collider.GetComponentInParent<Piece>();
+                if (direct != null && direct.m_comfort > 0)
+                {
+                    return direct;
+                }
+            }
+
+            s_scanBuffer.Clear();
+            Piece.GetAllComfortPiecesInRadius(player.transform.position, ScanRadius, s_scanBuffer);
+
+            Piece closest = null;
+            float closestLateral = SoloAimTolerance;
+            foreach (Piece piece in s_scanBuffer)
+            {
+                if (piece == null)
+                {
+                    continue;
+                }
+                Vector3 toPiece = piece.transform.position - cam.position;
+                float along = Vector3.Dot(toPiece, cam.forward);
+                if (along <= 0f || along > HoverRayDistance)
+                {
+                    continue;
+                }
+                float lateral = Vector3.Distance(cam.position + cam.forward * along, piece.transform.position);
+                if (lateral < closestLateral)
+                {
+                    closestLateral = lateral;
+                    closest = piece;
+                }
+            }
+            return closest;
         }
 
         private const int TabRowIndex = 2;
@@ -432,7 +467,7 @@ namespace ComfortRadius
                 return;
             }
 
-            menuRoot = new GameObject("ComfortRadiusMenu");
+            menuRoot = new GameObject("ComfortViewMenu");
             Canvas canvas = menuRoot.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 9990;
@@ -460,7 +495,7 @@ namespace ComfortRadius
             layout.childAlignment = TextAnchor.UpperLeft;
             panelGo.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            CreateText(panelRect, "Comfort Radius", TextAlignmentOptions.Left, 15f, Color.white);
+            CreateText(panelRect, "Comfort View", TextAlignmentOptions.Left, 15f, Color.white);
             CreateText(panelRect, "Up/Down move * Right select/pin/toggle * Esc close", TextAlignmentOptions.Left, 9f, new Color(0.8f, 0.8f, 0.8f));
 
             modeTexts = new TMP_Text[2];

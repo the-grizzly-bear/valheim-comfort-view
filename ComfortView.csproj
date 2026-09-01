@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
-    <AssemblyName>ComfortRadius</AssemblyName>
+    <AssemblyName>ComfortView</AssemblyName>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
     <RestorePackages>false</RestorePackages>
@@ -65,8 +65,8 @@
     <ItemGroup>
       <DeployFiles Include="$(TargetDir)$(AssemblyName).dll" />
     </ItemGroup>
-    <MakeDir Directories="$(BepInExPluginsPath)/ComfortRadius" />
-    <Copy SourceFiles="@(DeployFiles)" DestinationFolder="$(BepInExPluginsPath)/ComfortRadius" />
+    <MakeDir Directories="$(BepInExPluginsPath)/ComfortView" />
+    <Copy SourceFiles="@(DeployFiles)" DestinationFolder="$(BepInExPluginsPath)/ComfortView" />
   </Target>
 
 </Project>
