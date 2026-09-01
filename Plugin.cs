@@ -417,17 +417,9 @@ namespace ComfortView
             return group == Piece.ComfortGroup.None ? "Other" : group.ToString();
         }
 
-        private static readonly HashSet<string> ApprovedLabels = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        private static readonly HashSet<string> OtherGroupKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "Campfire", "Bonfire", "Hanging brazier", "Standing brazier", "Blue standing brazier", "Hearth",
-            "Deer rug", "Wolf rug", "Lox rug", "Hare rug", "Asksvin rug", "Straw", "Bearskin rug", "Red jute carpet", "Blue jute carpet",
-            "Table", "Black marble table", "Round table", "Long heavy table",
-            "Bench", "Sitting log", "Stool", "Black marble bench", "Ashwood bench", "Chair", "Darkwood chair", "Barber station",
-            "Raven throne", "Stone throne", "Black marble throne", "Bone throne",
-            "Bed", "Ashwood bed", "Dragon bed",
-            "Black banner", "Blue banner", "White and red striped banner", "Red banner", "Green banner",
-            "Blue, red and white banner", "White and blue striped banner", "Yellow banner", "Purple banner", "White banner", "Orange banner",
-            "Hot tub", "Lava lantern", "Armor stand", "Maypole", "Yule tree",
+            "piece_bathtub", "piece_lavalantern", "piece_armorstand", "piece_maypole", "piece_yuletree",
         };
 
         private static bool EnsureAllComfortTypes()
@@ -449,11 +441,11 @@ namespace ComfortView
                 {
                     continue;
                 }
-                string label = Localization.instance.Localize(piece.m_name);
-                if (ApprovedLabels.Contains(label))
+                if (piece.m_comfortGroup == Piece.ComfortGroup.None && !OtherGroupKeys.Contains(piece.m_name))
                 {
-                    list.Add((piece.m_name, label, piece.m_comfortGroup, piece.m_comfort));
+                    continue;
                 }
+                list.Add((piece.m_name, Localization.instance.Localize(piece.m_name), piece.m_comfortGroup, piece.m_comfort));
             }
             list.Sort((a, b) =>
             {
