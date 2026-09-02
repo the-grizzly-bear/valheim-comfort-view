@@ -258,7 +258,7 @@ namespace ComfortView
             if (Physics.Raycast(cam.position, cam.forward, out RaycastHit hit, HoverRayDistance, PieceRayMask()))
             {
                 Piece direct = hit.collider.GetComponentInParent<Piece>();
-                if (direct != null && direct.m_comfort > 0)
+                if (IsRealComfortPiece(direct))
                 {
                     return direct;
                 }
@@ -271,7 +271,7 @@ namespace ComfortView
             float closestLateral = SoloAimTolerance;
             foreach (Piece piece in s_scanBuffer)
             {
-                if (piece == null)
+                if (!IsRealComfortPiece(piece))
                 {
                     continue;
                 }
@@ -417,6 +417,23 @@ namespace ComfortView
             return group == Piece.ComfortGroup.None ? "Other" : group.ToString();
         }
 
+        private static readonly HashSet<string> AllowedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "$piece_firepit", "$piece_bonfire", "$piece_brazierceiling01", "$piece_brazierfloor01", "$piece_brazierfloor02", "$piece_hearth",
+            "$piece_rug_deer", "$piece_rug_wolf", "$piece_rug_lox", "$piece_rug_hare", "$piece_rug_asksvin", "$piece_rug_straw", "$piece_rug_bjorn", "$piece_jute_carpet", "$piece_juteblue_carpet",
+            "$piece_table", "$piece_blackmarble_table", "$piece_table_round", "$piece_table_oak",
+            "$piece_bench01", "$piece_benchlog", "$piece_stool", "$piece_blackmarble_bench", "$piece_blackwoodbench01", "$piece_chair", "$piece_darkwoodchair", "$piece_barber",
+            "$piece_throne01", "$piece_stonethrone", "$piece_blackmarble_throne", "$piece_bone_throne",
+            "$piece_bed", "$piece_ashwood_bed", "$piece_bed02",
+            "$piece_banner01", "$piece_banner02", "$piece_banner03", "$piece_banner04", "$piece_banner05", "$piece_banner06", "$piece_banner07", "$piece_banner08", "$piece_banner09", "$piece_banner10", "$piece_banner11",
+            "$piece_armorstand", "$piece_bathtub", "$piece_lavalantern", "$piece_maypole", "$piece_yuletree",
+        };
+
+        private static bool IsRealComfortPiece(Piece piece)
+        {
+            return piece != null && piece.m_comfort > 0 && AllowedKeys.Contains(piece.m_name);
+        }
+
         private static bool EnsureAllComfortTypes()
         {
             if (s_allComfortTypes != null)
@@ -428,15 +445,14 @@ namespace ComfortView
                 return false;
             }
             List<(string key, string label, Piece.ComfortGroup group, int comfort)> list = new List<(string, string, Piece.ComfortGroup, int)>();
-            HashSet<string> seen = new HashSet<string>();
+            HashSet<string> seenKeys = new HashSet<string>();
             foreach (GameObject prefab in ZNetScene.instance.m_prefabs)
             {
                 Piece piece = prefab.GetComponent<Piece>();
-                if (piece == null || piece.m_comfort <= 0 || !seen.Add(piece.m_name))
+                if (!IsRealComfortPiece(piece) || !seenKeys.Add(piece.m_name))
                 {
                     continue;
                 }
-                Debug.Log($"[ComfortView] comfort piece key='{piece.m_name}' group={piece.m_comfortGroup} label='{Localization.instance.Localize(piece.m_name)}'");
                 list.Add((piece.m_name, Localization.instance.Localize(piece.m_name), piece.m_comfortGroup, piece.m_comfort));
             }
             list.Sort((a, b) =>
@@ -789,6 +805,7 @@ namespace ComfortView
         {
             s_scanBuffer.Clear();
             Piece.GetAllComfortPiecesInRadius(player.transform.position, ScanRadius, s_scanBuffer);
+            s_scanBuffer.RemoveAll(p => !IsRealComfortPiece(p));
 
             pinned.RemoveWhere(p => p == null);
 
