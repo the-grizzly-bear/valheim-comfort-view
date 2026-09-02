@@ -14,7 +14,7 @@ namespace ComfortView
     {
         public const string PluginGUID = "mishka.valheim.comfortview";
         public const string PluginName = "ComfortView";
-        public const string PluginVersion = "1.1.0";
+        public const string PluginVersion = "1.1.1";
 
         private const float ComfortRadius = 10f;
         private const float ScanRadius = 20f;
@@ -258,7 +258,7 @@ namespace ComfortView
             if (Physics.Raycast(cam.position, cam.forward, out RaycastHit hit, HoverRayDistance, PieceRayMask()))
             {
                 Piece direct = hit.collider.GetComponentInParent<Piece>();
-                if (direct != null && direct.m_comfort > 0)
+                if (direct != null && direct.m_comfort > 0 && AllowedKeys.Contains(direct.m_name))
                 {
                     return direct;
                 }
@@ -271,7 +271,7 @@ namespace ComfortView
             float closestLateral = SoloAimTolerance;
             foreach (Piece piece in s_scanBuffer)
             {
-                if (piece == null)
+                if (piece == null || !AllowedKeys.Contains(piece.m_name))
                 {
                     continue;
                 }
@@ -417,8 +417,15 @@ namespace ComfortView
             return group == Piece.ComfortGroup.None ? "Other" : group.ToString();
         }
 
-        private static readonly HashSet<string> OtherGroupKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        private static readonly HashSet<string> AllowedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
+            "piece_firepit", "piece_bonfire", "piece_brazierceiling01", "piece_brazierfloor01", "piece_brazierfloor02", "piece_hearth",
+            "piece_rug_deer", "piece_rug_wolf", "piece_rug_lox", "piece_rug_hare", "piece_rug_asksvin", "piece_rug_straw", "piece_rug_bjorn", "piece_jute_carpet", "piece_juteblue_carpet",
+            "piece_table", "piece_blackmarble_table", "piece_table_round", "piece_table_oak",
+            "piece_bench01", "piece_benchlog", "piece_stool", "piece_blackmarble_bench", "piece_blackwoodbench01", "piece_chair", "piece_darkwoodchair", "piece_barber",
+            "piece_throne01", "piece_stonethrone", "piece_blackmarble_throne", "piece_bone_throne",
+            "piece_bed", "piece_ashwood_bed", "piece_bed02",
+            "piece_banner01", "piece_banner02", "piece_banner03", "piece_banner04", "piece_banner05", "piece_banner06", "piece_banner07", "piece_banner08", "piece_banner09", "piece_banner10", "piece_banner11",
             "piece_bathtub", "piece_lavalantern", "piece_armorstand", "piece_maypole", "piece_yuletree",
         };
 
@@ -437,11 +444,7 @@ namespace ComfortView
             foreach (GameObject prefab in ZNetScene.instance.m_prefabs)
             {
                 Piece piece = prefab.GetComponent<Piece>();
-                if (piece == null || piece.m_comfort <= 0 || !seen.Add(piece.m_name))
-                {
-                    continue;
-                }
-                if (piece.m_comfortGroup == Piece.ComfortGroup.None && !OtherGroupKeys.Contains(piece.m_name))
+                if (piece == null || piece.m_comfort <= 0 || !seen.Add(piece.m_name) || !AllowedKeys.Contains(piece.m_name))
                 {
                     continue;
                 }
@@ -797,6 +800,7 @@ namespace ComfortView
         {
             s_scanBuffer.Clear();
             Piece.GetAllComfortPiecesInRadius(player.transform.position, ScanRadius, s_scanBuffer);
+            s_scanBuffer.RemoveAll(p => p == null || !AllowedKeys.Contains(p.m_name));
 
             pinned.RemoveWhere(p => p == null);
 
