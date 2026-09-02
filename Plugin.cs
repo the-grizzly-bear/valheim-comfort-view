@@ -862,7 +862,7 @@ namespace ComfortView
 
             foreach (KeyValuePair<Piece, RingEntry> kv in activeRings)
             {
-                kv.Value.SphereRoot.SetActive(sphereMode || pinned.Contains(kv.Key));
+                kv.Value.SphereRoot.SetActive(sphereMode);
             }
         }
 
