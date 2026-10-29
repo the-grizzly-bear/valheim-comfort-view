@@ -64,7 +64,10 @@ namespace ComfortView
         {
             Items,
             Nearby,
+            Active,
         }
+
+        private static readonly MenuTab[] TabOrder = { MenuTab.Items, MenuTab.Nearby, MenuTab.Active };
 
         private static Material s_ringMaterial;
         private static Material s_dashMaterial;
@@ -108,6 +111,15 @@ namespace ComfortView
         private readonly List<TMP_Text> nearbyRowTexts = new List<TMP_Text>();
         private readonly List<Piece> nearbyNavPieces = new List<Piece>();
         private readonly HashSet<Piece> lastNearbySet = new HashSet<Piece>();
+
+        private readonly List<TMP_Text> activeRowTexts = new List<TMP_Text>();
+        private readonly List<Piece> activeNavPieces = new List<Piece>();
+        private readonly List<Piece> activeSetBuffer = new List<Piece>();
+        private readonly HashSet<Piece> lastActiveSet = new HashSet<Piece>();
+        private bool lastInShelter;
+        private TMP_Text activeHeaderText;
+        private GameObject activeSection;
+        private Transform[] activeColumns;
 
         private float navRepeatTimer;
         private const float NavInitialDelay = 0.35f;
@@ -213,9 +225,19 @@ namespace ComfortView
             {
                 refreshTimer = RefreshInterval;
                 RefreshRings(player);
-                if (menuRoot != null && NearbySetChanged())
+                if (menuRoot != null)
                 {
-                    RebuildNearbyRows(player);
+                    if (NearbySetChanged())
+                    {
+                        RebuildNearbyRows(player);
+                    }
+                    bool inShelter = player.InShelter();
+                    activeSetBuffer.Clear();
+                    ComputeActiveSet(s_scanBuffer, player.transform.position, activeSetBuffer, inShelter);
+                    if (ActiveSetChanged(inShelter))
+                    {
+                        RebuildActiveRows(player, inShelter);
+                    }
                 }
             }
 
@@ -297,7 +319,20 @@ namespace ComfortView
 
         private int MenuRowCount()
         {
-            return FirstListRowIndex + (activeTab == MenuTab.Items ? listNavToDataIndex.Count : nearbyNavPieces.Count);
+            int count;
+            switch (activeTab)
+            {
+                case MenuTab.Nearby:
+                    count = nearbyNavPieces.Count;
+                    break;
+                case MenuTab.Active:
+                    count = activeNavPieces.Count;
+                    break;
+                default:
+                    count = listNavToDataIndex.Count;
+                    break;
+            }
+            return FirstListRowIndex + count;
         }
 
         private void UpdateMenuInput()
@@ -336,7 +371,9 @@ namespace ComfortView
             {
                 if (pressedRight || pressedLeft)
                 {
-                    activeTab = activeTab == MenuTab.Items ? MenuTab.Nearby : MenuTab.Items;
+                    int tabIndex = System.Array.IndexOf(TabOrder, activeTab);
+                    tabIndex = (tabIndex + (pressedRight ? 1 : -1) + TabOrder.Length) % TabOrder.Length;
+                    activeTab = TabOrder[tabIndex];
                 }
             }
             else if (pressedRight)
@@ -370,6 +407,14 @@ namespace ComfortView
                 if (itemIndex >= 0 && itemIndex < nearbyNavPieces.Count)
                 {
                     TogglePin(nearbyNavPieces[itemIndex]);
+                }
+                return;
+            }
+            if (activeTab == MenuTab.Active)
+            {
+                if (itemIndex >= 0 && itemIndex < activeNavPieces.Count)
+                {
+                    TogglePin(activeNavPieces[itemIndex]);
                 }
                 return;
             }
@@ -535,6 +580,9 @@ namespace ComfortView
             itemsSection = BuildColumnSection(panelRect, out listColumns);
             nearbySection = BuildColumnSection(panelRect, out nearbyColumns);
 
+            activeHeaderText = CreateText(panelRect, "", TextAlignmentOptions.Left, 10f, Color.white);
+            activeSection = BuildColumnSection(panelRect, out activeColumns);
+
             EnsureAllComfortTypes();
         }
 
@@ -587,12 +635,13 @@ namespace ComfortView
             shapeText.color = shapeHighlighted ? Color.yellow : Color.white;
 
             bool tabHighlighted = menuIndex == TabRowIndex;
-            string tabsLabel = activeTab == MenuTab.Items ? "[ Items ]   Nearby" : "  Items   [ Nearby ]";
-            tabsText.text = (tabHighlighted ? "> " : "  ") + tabsLabel;
+            tabsText.text = (tabHighlighted ? "> " : "  ") + TabsLabel();
             tabsText.color = tabHighlighted ? Color.yellow : Color.white;
 
             itemsSection.SetActive(activeTab == MenuTab.Items);
             nearbySection.SetActive(activeTab == MenuTab.Nearby);
+            activeHeaderText.gameObject.SetActive(activeTab == MenuTab.Active);
+            activeSection.SetActive(activeTab == MenuTab.Active);
 
             EnsureAllComfortTypes();
             if (s_allComfortTypes == null)
@@ -633,6 +682,42 @@ namespace ComfortView
                 nearbyRowTexts[i].text = (highlighted ? "> " : "  ") + (isPinned ? "[x] " : "[ ] ") + $"{Localization.instance.Localize(piece.m_name)} ({dist:0}m)";
                 nearbyRowTexts[i].color = highlighted ? Color.yellow : CategoryColor(piece.m_comfortGroup);
             }
+
+            Player localPlayer = Player.m_localPlayer;
+            if (localPlayer != null)
+            {
+                if (!lastInShelter)
+                {
+                    activeHeaderText.text = "Not sheltered — no comfort items count right now";
+                    activeHeaderText.color = new Color(0.9f, 0.5f, 0.4f);
+                }
+                else
+                {
+                    int total = 2 + activeNavPieces.Sum(p => Mathf.RoundToInt(p.GetComfort()));
+                    activeHeaderText.text = $"Sheltered — comfort level {total} ({activeNavPieces.Count} item(s) counting)";
+                    activeHeaderText.color = Color.white;
+                }
+            }
+
+            for (int i = 0; i < activeRowTexts.Count; i++)
+            {
+                if (i >= activeNavPieces.Count)
+                {
+                    continue;
+                }
+                Piece piece = activeNavPieces[i];
+                bool isPinned = pinned.Contains(piece);
+                bool highlighted = activeTab == MenuTab.Active && menuIndex == FirstListRowIndex + i;
+                activeRowTexts[i].text = (highlighted ? "> " : "  ") + (isPinned ? "[x] " : "[ ] ") + $"{Localization.instance.Localize(piece.m_name)} (+{Mathf.RoundToInt(piece.GetComfort())})";
+                activeRowTexts[i].color = highlighted ? Color.yellow : CategoryColor(piece.m_comfortGroup);
+            }
+        }
+
+        private static readonly string[] TabLabels = { "Items", "Nearby", "Active" };
+
+        private string TabsLabel()
+        {
+            return string.Join("   ", TabOrder.Select((t, i) => t == activeTab ? $"[ {TabLabels[i]} ]" : TabLabels[i]));
         }
 
         private void UpdateModeRowText(int index, string label)
@@ -772,6 +857,73 @@ namespace ComfortView
             }
         }
 
+        private bool ActiveSetChanged(bool inShelter)
+        {
+            if (inShelter != lastInShelter)
+            {
+                return true;
+            }
+            if (activeSetBuffer.Count != lastActiveSet.Count)
+            {
+                return true;
+            }
+            foreach (Piece piece in activeSetBuffer)
+            {
+                if (!lastActiveSet.Contains(piece))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private void RebuildActiveRows(Player player, bool inShelter)
+        {
+            lastInShelter = inShelter;
+            lastActiveSet.Clear();
+            lastActiveSet.UnionWith(activeSetBuffer);
+
+            foreach (Transform col in activeColumns)
+            {
+                foreach (Transform child in col)
+                {
+                    Destroy(child.gameObject);
+                }
+            }
+            activeRowTexts.Clear();
+            activeNavPieces.Clear();
+
+            if (activeSetBuffer.Count == 0)
+            {
+                CreateText(activeColumns[0], inShelter ? "(nothing counting)" : "(not sheltered)", TextAlignmentOptions.Left, 10f, new Color(0.7f, 0.7f, 0.7f));
+                return;
+            }
+
+            List<Piece> ordered = activeSetBuffer.OrderBy(p => Vector3.Distance(player.transform.position, p.transform.position)).ToList();
+
+            List<List<Piece>> perColumn = new List<List<Piece>>();
+            for (int c = 0; c < activeColumns.Length; c++)
+            {
+                perColumn.Add(new List<Piece>());
+            }
+            int[] colLoad = new int[activeColumns.Length];
+            foreach (Piece piece in ordered)
+            {
+                int col = ShortestColumn(colLoad);
+                colLoad[col]++;
+                perColumn[col].Add(piece);
+            }
+
+            for (int c = 0; c < activeColumns.Length; c++)
+            {
+                foreach (Piece piece in perColumn[c])
+                {
+                    activeRowTexts.Add(CreateText(activeColumns[c], "", TextAlignmentOptions.Left, 10f, Color.white));
+                    activeNavPieces.Add(piece);
+                }
+            }
+        }
+
         private void UpdateHover()
         {
             Piece hit = null;
@@ -813,7 +965,7 @@ namespace ComfortView
             switch (mode)
             {
                 case DisplayMode.ActiveOnly:
-                    ComputeActiveSet(s_scanBuffer, player.transform.position, s_visibleBuffer);
+                    ComputeActiveSet(s_scanBuffer, player.transform.position, s_visibleBuffer, player.InShelter());
                     break;
                 case DisplayMode.Picker:
                     foreach (Piece piece in s_scanBuffer)
@@ -866,8 +1018,13 @@ namespace ComfortView
             }
         }
 
-        private static void ComputeActiveSet(List<Piece> nearby, Vector3 playerPos, List<Piece> output)
+        private static void ComputeActiveSet(List<Piece> nearby, Vector3 playerPos, List<Piece> output, bool inShelter)
         {
+            if (!inShelter)
+            {
+                return;
+            }
+
             s_activeBuffer.Clear();
             foreach (Piece piece in nearby)
             {
