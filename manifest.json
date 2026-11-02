@@ -1,6 +1,6 @@
 {
   "name": "ComfortView",
-  "version_number": "1.1.0",
+  "version_number": "1.1.1",
   "website_url": "https://github.com/the-grizzly-bear/valheim-comfort-view",
   "description": "Shows the exact radius of every comfort item as a ring or sphere on the ground.",
   "dependencies": [
