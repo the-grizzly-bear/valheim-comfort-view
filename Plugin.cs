@@ -14,7 +14,7 @@ namespace ComfortView
     {
         public const string PluginGUID = "mishka.valheim.comfortview";
         public const string PluginName = "ComfortView";
-        public const string PluginVersion = "1.0.0";
+        public const string PluginVersion = "1.1.0";
 
         private const float ComfortRadius = 10f;
         private const float ScanRadius = 20f;
